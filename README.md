@@ -31,10 +31,10 @@ Generates this 11x11 map with 95% efficiency.
     2 2 2 2 2 2 4 4 4
     2 2 2 2 2 2 4 4 4
     
-Using [this input](http://pastebin.com/sxk6sA4U) from /u/Cosmologicon  [this output](https://gist.github.com/4466497) is created in 200ms using a 206x206 grid (93,6% efficiency) ![Visualization](savaron.github.com/Pack-O-Tron/boxes.png).
+Using [this input](http://pastebin.com/sxk6sA4U) from /u/Cosmologicon  [this output](https://gist.github.com/4466497) is created in 200ms using a 206x206 grid (93,6% efficiency) ![Visualization](boxes.png).
 
 It also can create random boxes, which might look like this:
-![Random](savaron.github.com/Pack-O-Tron/random.png)
+![Random](random.png)
 
 
     
