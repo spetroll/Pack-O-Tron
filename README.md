@@ -29,4 +29,5 @@ Generates this 11x11 map with 95% efficiency.
     5  5  5  5  9  9  9  9  6  6  . 
     5  5  5  5  9  9  9  9  6  6  .
     
+Using [this input](http://pastebin.com/sxk6sA4U) from /u/Cosmologicon  [this output](https://gist.github.com/4466497) is created in 200ms using a 206x206 grid (93,6% efficiency).
     
