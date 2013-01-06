@@ -6,49 +6,63 @@ using System.Threading.Tasks;
 
 namespace Pack_O_Tron
 {
-	public class Box :ICloneable
+	public class Box
 	{
-		private static int index = 0;
-		public string ID { get; private set; }
-		public int X { get; set;}
-		public int Y { get; set; }
-		public int Width { get; private set; }
-		public int Height { get; private set; }
+		public int x;
+		public int y;
+		public int width;
+		public int height;
+		public int ID;
 
-		public Box(int width, int height, int x = 0, int y = 0)
+		public static int count = 0;
+
+		public Box(Box b) : this(b.x, b.y, b.width, b.height)
 		{
-			ID = index.ToString();
-			index++;
-			Width = width;
-			Height = height;
-			X = x;
-			Y = y;
 		}
 
-		public void Set(int x, int y)
+		public Box(int width, int height) : this(0,0,width, height)
 		{
-			X = x;
-			Y = y;
 		}
 
-		public int TotalArea()
+		public Box()
 		{
-			return Width*Height;
 		}
 
-		public bool FitsArea(Area area)
+		public Box(int x, int y, int width, int height)
 		{
-			return Width <= (area.MaxY - area.Y) && Height <= (area.MaxX - area.X);
+			this.ID = count++;
+			this.x = x;
+			this.y = y;
+			this.width = width;
+			this.height = height;
 		}
 
-		public object Clone()
+		public int CompareRectShortSide(Box a, Box b)
 		{
-			return MemberwiseClone();
+
+			int smallerSideA = Math.Min(a.width, a.height);
+			int smallerSideB = Math.Min(b.width, b.height);
+
+			if (smallerSideA != smallerSideB)
+				return smallerSideA.CompareTo(smallerSideB);
+
+			// Tie-break on the larger side.
+			int largerSideA = Math.Max(a.width, a.height);
+			int largerSideB = Math.Max(b.width, b.height);
+
+			return largerSideA.CompareTo(largerSideB);
+		}
+		
+		public static bool IsContainedIn(Box a, Box b)
+		{
+			return a.x >= b.x && a.y >= b.y
+			       && a.x + a.width <= b.x + b.width
+			       && a.y + a.height <= b.y + b.height;
 		}
 
 		public override string ToString()
 		{
-			return String.Format("{0} {1} {2} {3}", X, Y, Height, Width, ID);
+			return String.Format("{0} {1} {2} {3}", x, y, width, height, ID);
 		}
 	}
 }

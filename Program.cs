@@ -11,129 +11,45 @@ namespace Pack_O_Tron
 	{
 		private static void Main()
 		{
-			var grid = new Grid(11, 1000);
 			var timer = new Stopwatch();
+
 			timer.Start();
-
 			var boxList = new List<Box>(ReadBoxFile(@"test.txt"));
-
 			timer.Stop();
+
 			Console.WriteLine("Reading file: {0}", timer.GetTimeString());
 
 			timer.Restart();
-
-
-			//var result = OneColumnsSimple(boxList, grid);
-			//var result = OneColumnsSimple(boxList, grid, new WidthComparer());
-			//var result = OneColumnsHeuristic(boxList, grid);
-			//var result = OneColumnsHeuristic(boxList, grid, new HeightComparer());
-			//var result = OneColumnsHeuristic(boxList, grid, new WeightComparer());
-			//var result = OneColumnsHeuristic(boxList, grid, new AreaComparer());
-			var result = FillRecursive(grid, boxList);
-			
+			List<Grid> results = GetResults(boxList).ToList();
 			timer.Stop();
-			Console.WriteLine("Filling grid: {0}", timer.GetTimeString());
-			Console.WriteLine("Efficiency {0}%", result.Efficiency());
-			Console.WriteLine(result);
 
-			WriteOutputFile(@"c:\result.txt", result);
+			Console.WriteLine("Heuristics: {0}", timer.GetTimeString());
+			results.Sort(new GridComparer());
+			results.ForEach(x=> Console.WriteLine(x.ShortString()));
+			
+			WriteOutputFile(@"c:\result.txt", results.First());
 			Console.Read();
 
 		}
 
-		public static Grid FillRecursive(Grid grid, List<Box> remainingBoxes)
+		private static IEnumerable<Grid> GetResults(List<Box> boxList)
 		{
-			remainingBoxes.Sort(new HeightComparer());
-			var area = new Area(0, 0, grid.Height, grid.Width);
-			var results =
-				remainingBoxes.Select(box => FillBoundedArea(area, remainingBoxes.Clone(), new Grid(grid), true)).ToList();
-			results.Sort(new GridComparer());
-
-			results.ForEach(Console.WriteLine);
-			return results.First();
-		}
-
-		public static int BoxIndex = 0;
-
-		public static Grid FillBoundedArea(Area area, List<Box> remainingBoxes, Grid grid, bool first = false )
-		{
-			if (area.X > area.MaxX || area.Y > area.MaxY)
+			foreach (var method in Extensions.GetValues<FreeRectChoiceHeuristic>())
 			{
-				throw new IndexOutOfRangeException();
-			}
-
-			if (remainingBoxes != null)
-			{
-				Box box = first ? remainingBoxes[BoxIndex++] : remainingBoxes.FirstOrDefault(x => x.FitsArea(area));
-
-				if (box == null || !grid.Valid(box, area.X, area.Y))
-					return grid;
-
-				grid.Add(box, area.X, area.Y);
-				remainingBoxes.Remove(box);
-
-				var horizontal2 = new Area(area.X, box.Width + area.Y, box.Height+area.X, area.MaxY);
-				var horizontal34 = new Area(box.Height + area.X, area.Y, area.MaxX, area.MaxY);
-
-				FillBoundedArea(horizontal2, remainingBoxes, grid);
-				FillBoundedArea(horizontal34, remainingBoxes, grid);
-
-				//Doesn't work correctly
-				//Area vertical3 = new Area(box.Height + area.X, area.Y, area.MaxX, box.Width + area.Y);
-				//Area vertical24 = new Area(area.X, box.Width + area.Y, area.MaxX, area.MaxY);
-
-				//FillBoundedArea(vertical3, remainingBoxes, grid);
-				//FillBoundedArea(vertical24, remainingBoxes, grid);
-			}
-
-			return grid;
-		}
-
-		public static Grid OneColumnsHeuristic(List<Box> boxList, Grid grid, IComparer<Box> comparer = null)
-		{
-			int x = 0;
-			int y = 0;
-			if (comparer != null)
-			{
-				boxList.Sort(comparer);
-			}
-
-			var remainingBoxes = boxList.Clone();
-			while (remainingBoxes.Count > 0)
-			{
-				
-				var fits = remainingBoxes.FirstOrDefault(box => y + box.Width <= grid.Width);
-
-				if (fits != null)
+				bool finished = false;
+				int width = 5;
+				int height = 5;
+				Grid bin = null;
+				while (!finished)
 				{
-					grid.Add(fits, x, y);
-					remainingBoxes.Remove(fits);
-					y += fits.Width;
+					width++;
+					height++;
+					bin = new Grid(width, height, method);
+					finished = bin.Insert(boxList.Select(x => new Box(x)).ToList());
 				}
-				else
-				{
-					x = grid.MaxLineHeight();
-					y = 0;
-				}
+				yield return bin;
 			}
-			return grid;
 		}
-
-		public static Grid OneColumnsSimple(List<Box> boxList, Grid grid, IComparer<Box> comparer = null)
-		{
-			int maxX = 0;
-			if (comparer != null)
-			{
-				boxList.Sort(comparer);
-			}
-			foreach (var box in boxList)
-			{
-				grid.Add(box, maxX, 0);
-				maxX += box.Height;
-			}
-			return grid;
-		}
-
 
 		#region Working with Files
 
@@ -142,7 +58,7 @@ namespace Pack_O_Tron
 			using (var file = new FileStream(filename, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite))
 			using (var writer = new StreamWriter(file))
 			{
-				result.usedBoxes.ForEach(x => writer.WriteLine(x.ToString()));
+				result.UsedBoxes.ForEach(x => writer.WriteLine(x.ToString()));
 			}
 		}
 
@@ -154,7 +70,7 @@ namespace Pack_O_Tron
 				while (!reader.EndOfStream)
 				{
 					var split = reader.ReadLine().Split(' ').Select(n => Convert.ToInt32(n)).ToArray();
-					yield return (new Box(split[0], split[1]));
+					yield return new Box(split[0], split[1]);
 				}
 			}
 		}
