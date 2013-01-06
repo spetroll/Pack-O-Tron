@@ -7,40 +7,41 @@ using System.Threading.Tasks;
 
 namespace Pack_O_Tron
 {
-	public class Grid
+	public class MaxRectsBinPack
 	{
-		private readonly int binWidth;
-		private readonly int binHeight;
-		public readonly List<Box> UsedBoxes = new List<Box>();
-		private readonly List<Box> FreeBoxes = new List<Box>();
+		public readonly int binWidth;
+		public readonly int binHeight;
+		public readonly List<Rect> UsedBoxes = new List<Rect>();
+		private readonly List<Rect> FreeBoxes = new List<Rect>();
 		public FreeRectChoiceHeuristic Method;
+		private IComparer<Rect> comparer;
 
-		private string[,] _stringMap;
-
-		public Grid(int width, int height, FreeRectChoiceHeuristic method)
+		public MaxRectsBinPack(int width, int height, FreeRectChoiceHeuristic method, IComparer<Rect> comparer)
 		{
 			binWidth = width;
 			binHeight = height;
 			Method = method;
-			var n = new Box(0, 0, width, height);
+			var n = new Rect(0, 0, width, height);
 			FreeBoxes.Add(n);
+			this.comparer = comparer;
 		}
-		
-		public bool Insert(List<Box> rects)
+
+		public bool Insert(List<Rect> rects)
 		{
 			UsedBoxes.Clear();
+			rects.Sort(comparer);
 			while (rects.Count > 0)
 			{
 				int bestScore1 = int.MaxValue;
 				int bestScore2 = int.MaxValue;
 				int bestRectIndex = -1;
-				Box bestNode = new Box();
+				Rect bestNode = new Rect();
 
 				for (int i = 0; i < rects.Count; ++i)
 				{
 					int score1 = 0;
 					int score2 = 0;
-					Box newNode = new Box(ScoreRect(rects[i].width, rects[i].height, Method, out score1, out score2));
+					Rect newNode = new Rect(ScoreRect(rects[i].width, rects[i].height, Method, out score1, out score2));
 
 					if (score1 < bestScore1 || (score1 == bestScore1 && score2 < bestScore2))
 					{
@@ -53,14 +54,14 @@ namespace Pack_O_Tron
 
 				if (bestRectIndex == -1)
 					return false;
-					
+
 				PlaceRect(bestNode);
 				rects.RemoveAt(bestRectIndex);
 			}
 			return true;
 		}
 
-		public void PlaceRect(Box node)
+		public void PlaceRect(Rect node)
 		{
 			int numRectanglesToProcess = FreeBoxes.Count;
 			for (int i = 0; i < numRectanglesToProcess; ++i)
@@ -78,11 +79,11 @@ namespace Pack_O_Tron
 			UsedBoxes.Add(node);
 		}
 
-		
 
-		private Box ScoreRect(int width, int height, FreeRectChoiceHeuristic method, out int score1, out int score2)
+
+		private Rect ScoreRect(int width, int height, FreeRectChoiceHeuristic method, out int score1, out int score2)
 		{
-			Box newNode = new Box();
+			Rect newNode = new Rect();
 			score1 = int.MaxValue;
 			score2 = int.MaxValue;
 			switch (method)
@@ -90,13 +91,6 @@ namespace Pack_O_Tron
 				case FreeRectChoiceHeuristic.RectBestShortSideFit:
 					newNode = FindPositionForNewNodeBestShortSideFit(width, height, ref score1, ref score2);
 					break;
-				case FreeRectChoiceHeuristic.RectBottomLeftRule:
-					newNode = FindPositionForNewNodeBottomLeft(width, height, ref score1, ref score2);
-					break;
-				//case FreeRectChoiceHeuristic.RectContactPointRule:
-				//	newNode = FindPositionForNewNodeContactPoint(width, height, ref score1);
-				//	score1 = -score1; // Reverse since we are minimizing, but for contact point score bigger is better.
-				//	break;
 				case FreeRectChoiceHeuristic.RectBestLongSideFit:
 					newNode = FindPositionForNewNodeBestLongSideFit(width, height, ref score2, ref score1);
 					break;
@@ -118,18 +112,18 @@ namespace Pack_O_Tron
 		/// Computes the ratio of used surface area.
 		public float Efficiency()
 		{
-			long usedSurfaceArea = UsedBoxes.Aggregate<Box, long>(0, (current, t) => current + t.width*t.height);
+			long usedSurfaceArea = UsedBoxes.Aggregate<Rect, long>(0, (current, t) => current + t.width*t.height);
 
 			return (float) usedSurfaceArea/(binWidth*binHeight);
 		}
 
-		public Box FindPositionForNewNodeBottomLeft(int width, int height, ref int bestY, ref int bestX)
+		public Rect FindPositionForNewNodeBottomLeft(int width, int height, ref int bestY, ref int bestX)
 		{
-			Box bestNode = new Box();
+			Rect bestNode = new Rect();
 
 			bestY = int.MaxValue;
 
-			foreach (Box t in FreeBoxes)
+			foreach (Rect t in FreeBoxes)
 			{
 				// Try to place the rectangle in upright (non-flipped) orientation.
 				if (t.width >= width && t.height >= height)
@@ -162,13 +156,14 @@ namespace Pack_O_Tron
 			return bestNode;
 		}
 
-		public Box FindPositionForNewNodeBestShortSideFit(int width, int height, ref int bestShortSideFit, ref int bestLongSideFit)
+		public Rect FindPositionForNewNodeBestShortSideFit(int width, int height, ref int bestShortSideFit,
+		                                                   ref int bestLongSideFit)
 		{
-			Box bestNode = new Box();
+			Rect bestNode = new Rect();
 
 			bestShortSideFit = int.MaxValue;
 
-			foreach (Box rect in FreeBoxes)
+			foreach (Rect rect in FreeBoxes)
 			{
 				// Try to place the rectangle in upright (non-flipped) orientation.
 				if (rect.width >= width && rect.height >= height)
@@ -211,13 +206,14 @@ namespace Pack_O_Tron
 			return bestNode;
 		}
 
-		private Box FindPositionForNewNodeBestLongSideFit(int width, int height, ref int bestShortSideFit, ref int bestLongSideFit)
+		private Rect FindPositionForNewNodeBestLongSideFit(int width, int height, ref int bestShortSideFit,
+		                                                   ref int bestLongSideFit)
 		{
-			Box bestNode = new Box();
+			Rect bestNode = new Rect();
 
 			bestLongSideFit = int.MaxValue;
 
-			foreach (Box rect in FreeBoxes)
+			foreach (Rect rect in FreeBoxes)
 			{
 				// Try to place the rectangle in upright (non-flipped) orientation.
 				if (rect.width >= width && rect.height >= height)
@@ -259,14 +255,14 @@ namespace Pack_O_Tron
 			return bestNode;
 		}
 
-		public Box FindPositionForNewNodeBestAreaFit(int width, int height, ref int bestAreaFit, ref int bestShortSideFit)
+		public Rect FindPositionForNewNodeBestAreaFit(int width, int height, ref int bestAreaFit, ref int bestShortSideFit)
 		{
-			Box bestNode = new Box();
+			Rect bestNode = new Rect();
 
 
 			bestAreaFit = int.MaxValue;
 
-			foreach (Box rect in FreeBoxes)
+			foreach (Rect rect in FreeBoxes)
 			{
 				int areaFit = rect.width*rect.height - width*height;
 
@@ -325,7 +321,7 @@ namespace Pack_O_Tron
 			if (y == 0 || y + height == binHeight)
 				score += width;
 
-			foreach (Box t in UsedBoxes)
+			foreach (Rect t in UsedBoxes)
 			{
 				if (t.x == x + width || t.x + t.width == x)
 					score += CommonIntervalLength(t.y, t.y + t.height, y, y + height);
@@ -335,9 +331,9 @@ namespace Pack_O_Tron
 			return score;
 		}
 
-		public Box FindPositionForNewNodeContactPoint(int width, int height, ref int bestContactScore)
+		public Rect FindPositionForNewNodeContactPoint(int width, int height, ref int bestContactScore)
 		{
-			Box bestNode = new Box();
+			Rect bestNode = new Rect();
 
 			bestContactScore = -1;
 
@@ -372,7 +368,7 @@ namespace Pack_O_Tron
 			return bestNode;
 		}
 
-		public bool SplitFreeNode(Box freeNode, Box usedNode)
+		public bool SplitFreeNode(Rect freeNode, Rect usedNode)
 		{
 			// Test with SAT if the rectangles even intersect.
 			if (usedNode.x >= freeNode.x + freeNode.width || usedNode.x + usedNode.width <= freeNode.x ||
@@ -384,7 +380,7 @@ namespace Pack_O_Tron
 				// New node at the top side of the used node.
 				if (usedNode.y > freeNode.y && usedNode.y < freeNode.y + freeNode.height)
 				{
-					Box newNode = new Box(freeNode);
+					Rect newNode = new Rect(freeNode);
 					newNode.height = usedNode.y - newNode.y;
 					FreeBoxes.Add(newNode);
 				}
@@ -392,7 +388,7 @@ namespace Pack_O_Tron
 				// New node at the bottom side of the used node.
 				if (usedNode.y + usedNode.height < freeNode.y + freeNode.height)
 				{
-					Box newNode = new Box(freeNode);
+					Rect newNode = new Rect(freeNode);
 					newNode.y = usedNode.y + usedNode.height;
 					newNode.height = freeNode.y + freeNode.height - (usedNode.y + usedNode.height);
 					FreeBoxes.Add(newNode);
@@ -404,7 +400,7 @@ namespace Pack_O_Tron
 				// New node at the left side of the used node.
 				if (usedNode.x > freeNode.x && usedNode.x < freeNode.x + freeNode.width)
 				{
-					Box newNode = new Box(freeNode);
+					Rect newNode = new Rect(freeNode);
 					newNode.width = usedNode.x - newNode.x;
 					FreeBoxes.Add(newNode);
 				}
@@ -412,7 +408,7 @@ namespace Pack_O_Tron
 				// New node at the right side of the used node.
 				if (usedNode.x + usedNode.width < freeNode.x + freeNode.width)
 				{
-					Box newNode = new Box(freeNode);
+					Rect newNode = new Rect(freeNode);
 					newNode.x = usedNode.x + usedNode.width;
 					newNode.width = freeNode.x + freeNode.width - (usedNode.x + usedNode.width);
 					FreeBoxes.Add(newNode);
@@ -429,13 +425,13 @@ namespace Pack_O_Tron
 			for (int i = 0; i < FreeBoxes.Count; ++i)
 				for (int j = i + 1; j < FreeBoxes.Count; ++j)
 				{
-					if (Box.IsContainedIn(FreeBoxes[i], FreeBoxes[j]))
+					if (Rect.IsContainedIn(FreeBoxes[i], FreeBoxes[j]))
 					{
 						FreeBoxes.RemoveAt(i);
 						--i;
 						break;
 					}
-					if (Box.IsContainedIn(FreeBoxes[j], FreeBoxes[i]))
+					if (Rect.IsContainedIn(FreeBoxes[j], FreeBoxes[i]))
 					{
 						FreeBoxes.RemoveAt(j);
 						--j;
@@ -448,39 +444,39 @@ namespace Pack_O_Tron
 			var result = new StringBuilder(String.Format("Grid: {0},{1}:", binWidth, binHeight));
 			result.Append(Environment.NewLine);
 			result.Append(String.Format("Efficiency: {0} {1}", Efficiency(), Environment.NewLine));
-			result.Append(String.Format("Rects: {0} {1}",UsedBoxes.Count, Environment.NewLine));
+			result.Append(String.Format("Rects: {0} {1}", UsedBoxes.Count, Environment.NewLine));
 			result.Append(String.Format("Method: {0}", Method.ToString()));
+			result.Append(String.Format("Comparer: {0}", comparer));
 			result.Append(Environment.NewLine);
 			return result.ToString();
 		}
 
 		public override string ToString()
 		{
-			_stringMap = new string[binWidth,binHeight];
+			var stringMap = new string[binWidth,binHeight];
+			int i = 0;
 			foreach (var b in UsedBoxes)
 			{
 				for (int y = b.y; y < b.y + b.height; y++)
 				{
 					for (int x = b.x; x < b.x + b.width; x++)
 					{
-						_stringMap[x, y] = (b.ID % 10).ToString();
+						stringMap[x, y] = i.ToString();
 					}
 				}
+				i++;
 			}
 
-			var result = new StringBuilder(String.Format("Grid: {0},{1}:", binWidth, binHeight));
-			result.Append(Environment.NewLine);
+			var result = new StringBuilder(ShortString());
 			for (int x = 0; x < binWidth; x++)
 			{
 				for (int y = 0; y < binHeight; y++)
 				{
-					result.Append(String.Format(" {0} ", String.IsNullOrEmpty(_stringMap[x, y]) ? "." : _stringMap[x, y]));
+					result.Append(String.Format(new PaddedStringFormatInfo(UsedBoxes.Count), "{0:-2: }",
+					                            String.IsNullOrEmpty(stringMap[x, y]) ? "." : stringMap[x, y]));
 				}
 				result.Append(Environment.NewLine);
 			}
-
-			result.Append(String.Format("Efficiency: {0} {1}", Efficiency(), Environment.NewLine));
-			result.Append(String.Format("Method: {0}", Method.ToString()));
 			result.Append(Environment.NewLine);
 			return result.ToString();
 		}

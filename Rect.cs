@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Pack_O_Tron
 {
-	public class Box
+	public class Rect
 	{
 		public int x;
 		public int y;
@@ -16,19 +16,19 @@ namespace Pack_O_Tron
 
 		public static int count = 0;
 
-		public Box(Box b) : this(b.x, b.y, b.width, b.height)
+		public Rect(Rect b) : this(b.x, b.y, b.width, b.height)
 		{
 		}
 
-		public Box(int width, int height) : this(0,0,width, height)
+		public Rect(int width, int height) : this(0,0,width, height)
 		{
 		}
 
-		public Box()
+		public Rect()
 		{
 		}
 
-		public Box(int x, int y, int width, int height)
+		public Rect(int x, int y, int width, int height)
 		{
 			this.ID = count++;
 			this.x = x;
@@ -37,7 +37,7 @@ namespace Pack_O_Tron
 			this.height = height;
 		}
 
-		public int CompareRectShortSide(Box a, Box b)
+		public int CompareRectShortSide(Rect a, Rect b)
 		{
 
 			int smallerSideA = Math.Min(a.width, a.height);
@@ -53,7 +53,7 @@ namespace Pack_O_Tron
 			return largerSideA.CompareTo(largerSideB);
 		}
 		
-		public static bool IsContainedIn(Box a, Box b)
+		public static bool IsContainedIn(Rect a, Rect b)
 		{
 			return a.x >= b.x && a.y >= b.y
 			       && a.x + a.width <= b.x + b.width
